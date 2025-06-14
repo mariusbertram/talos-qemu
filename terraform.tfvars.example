@@ -1,0 +1,15 @@
+# Anzahl der Nodes
+controlplane = 3
+worker = 3
+
+# Libvirt-Konfiguration
+libvirt_uri = "qemu+ssh://user@host/system"
+libvirt_pool = "default"
+
+# Cluster-Konfiguration
+cluster_name = "talos-k8s"
+controlplane_endpoint = "192.168.100.100"
+network_cidr = "192.168.100.0/24"
+
+# Software-Versionen
+cilium_version = "v1.17.4"

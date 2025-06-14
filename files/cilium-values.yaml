@@ -1,0 +1,68 @@
+# Cilium Helm-Werte für Version 1.17.4
+
+# Aktivieren des Cluster Mesh für Multi-Cluster-Verbindungen
+clusterMesh:
+  useAPIServer: false
+
+# Konfiguration der Cluster-Identität
+cluster:
+  name: ${cluster_name}
+  id: 1
+
+operator:
+  replicas: 1
+
+# Monitoring-Einstellungen
+prometheus:
+  enabled: true
+
+# IPv4/IPv6 Einstellungen
+ipv4:
+  enabled: true
+ipv6:
+  enabled: false
+
+# Tunen der Leistung
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+# Setzen des Installationsmodus auf Kubernetes (nicht DaemonSet)
+kubeProxyReplacement: strict
+
+# Aktivieren von Hubble für Netzwerkbeobachtbarkeit
+hubble:
+  enabled: true
+  relay:
+    enabled: true
+  ui:
+    enabled: true
+
+# BGP Routing konfigurieren
+bgp:
+  enabled: false
+
+# Load Balancer IPAM konfigurieren
+lbipam:
+  enabled: true
+
+# Network Policies aktivieren
+policyEnforcement: default
+
+# Version 1.17.4 spezifische Konfigurationen
+gateway:
+  enabled: true
+
+# Layer 7 Observability
+l7Proxy: true
+
+# Direkte Routing-Mode verwenden
+routingMode: native
+
+# Verbesserte DaemonSet-Einstellungen
+daemonSet:
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
