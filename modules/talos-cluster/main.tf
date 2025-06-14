@@ -4,17 +4,10 @@ locals {
   controlplane_patch = yamlencode({
     machine = {
       network = {
-        hostname = "controlplane"
         interfaces = [
           {
             interface = "ens3"
                 dhcp = true
-                routes = [
-                  {
-                    network = "0.0.0.0/0"
-                    gateway = cidrhost(var.network_cidr, 1)
-                  }
-                ]
             vip = {
               ip = var.controlplane_endpoint
             }
@@ -24,19 +17,6 @@ locals {
       install = {
         disk = "/dev/vda"
       }
-      kubelet = {
-        extraArgs = {
-          "feature-gates" = "GracefulNodeShutdown=true"
-        }
-        nodeIP = {
-          validSubnets = [var.network_cidr]
-        }
-      }
-      sysctls = {
-        "net.core.somaxconn" = 65535
-        "net.core.netdev_max_backlog" = 4096
-        "net.ipv4.ip_forward" = 1
-      }
     }
   })
 
@@ -44,38 +24,18 @@ locals {
   worker_patch = yamlencode({
     machine = {
       network = {
-        hostname = "worker"
         interfaces = [
           {
             interface = "ens3"
-                dhcp = false
-                routes = [
-                  {
-                    network = "0.0.0.0/0"
-                    gateway = cidrhost(var.network_cidr, 1)
-                  }
-                ]
+                dhcp = true
           }
         ]
       }
       install = {
         disk = "/dev/vda"
       }
-      kubelet = {
-        extraArgs = {
-          "feature-gates" = "GracefulNodeShutdown=true"
-        }
-        nodeIP = {
-          validSubnets = [var.network_cidr]
-        }
       }
-      sysctls = {
-        "net.core.somaxconn" = 65535
-        "net.core.netdev_max_backlog" = 4096
-        "net.ipv4.ip_forward" = 1
-      }
-    }
-  })
+    })
 
   # Cluster-Konfiguration
   cluster_patch = yamlencode({
@@ -87,7 +47,6 @@ locals {
         podSubnets = ["10.244.0.0/16"]
         serviceSubnets = ["10.96.0.0/12"]
       }
-      allowSchedulingOnMasters = true
     }
   })
 }
@@ -108,10 +67,16 @@ data "talos_machine_configuration" "controlplane" {
   ]
 }
 
+data "talos_client_configuration" "this" {
+  client_configuration = talos_machine_secrets.this.client_configuration
+  cluster_name         = var.cluster_name
+  nodes = concat(var.controlplane_ips, var.worker_ips)
+}
+
 # Konfiguration für Worker-Nodes erstellen
 data "talos_machine_configuration" "worker" {
   cluster_name     = var.cluster_name
-  cluster_endpoint = "https://${var.controlplane_endpoint}:6443"
+  cluster_endpoint = "https://${var.controlplane_ips[0]}:6443"
   machine_type     = "worker"
   machine_secrets  = talos_machine_secrets.this.machine_secrets
 
@@ -127,7 +92,6 @@ resource "talos_machine_configuration_apply" "controlplane" {
   client_configuration = talos_machine_secrets.this.client_configuration
   machine_configuration_input = data.talos_machine_configuration.controlplane.machine_configuration
   node                 = var.controlplane_ips[count.index]
-  endpoint             = var.controlplane_ips[0]
 
 }
 
@@ -138,25 +102,28 @@ resource "talos_machine_configuration_apply" "worker" {
   client_configuration = talos_machine_secrets.this.client_configuration
   machine_configuration_input = data.talos_machine_configuration.worker.machine_configuration
   node                 = var.worker_ips[count.index]
-  endpoint             = var.controlplane_ips[0]
 
   depends_on = [talos_machine_configuration_apply.controlplane]
+}
+
+# 30 Sekunden warten, bevor der Bootstrap ausgeführt wird
+resource "time_sleep" "wait_before_bootstrap" {
+  depends_on = [talos_machine_configuration_apply.controlplane]
+  create_duration = "30s"
 }
 
 # Bootstrappt den Talos-Cluster
 resource "talos_cluster_kubeconfig" "this" {
   client_configuration = talos_machine_secrets.this.client_configuration
   node                 = var.controlplane_ips[0]
-  endpoint             = var.controlplane_ips[0]
 
-  depends_on = [talos_machine_configuration_apply.controlplane]
+  depends_on = [time_sleep.wait_before_bootstrap]
 }
 
 # Bootstrappt den Talos-Cluster
 resource "talos_machine_bootstrap" "this" {
   client_configuration = talos_machine_secrets.this.client_configuration
   node                 = var.controlplane_ips[0]
-  endpoint             = var.controlplane_ips[0]
 
-  depends_on = [talos_machine_configuration_apply.controlplane]
+  depends_on = [time_sleep.wait_before_bootstrap]
 }

@@ -16,7 +16,23 @@ crash.*.log
 # to change depending on the environment.
 *.tfvars
 *.tfvars.json
+# Terraform Dateien
+.terraform/
+.terraform.lock.hcl
+terraform.tfstate
+terraform.tfstate.backup
 
+# Output-Ordner mit Konfigurations-Dateien
+output/
+
+# Lokale Umgebungsvariablen
+.env
+
+# IDE Dateien
+.idea/
+.vscode/
+*.swp
+*.swo
 # Ignore override files as they are usually used to override resources locally and so
 # are not checked in
 override.tf

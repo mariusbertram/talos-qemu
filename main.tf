@@ -28,7 +28,7 @@ module "controlplane" {
   name_prefix        = "controlplane"
   node_count         = var.controlplane
   network_name       = module.network.network_name
-  ip_prefix          = "192.168.100.10"
+  ip_prefix          = "192.168.100.1"
   talos_base_volume_id = module.talos_image.talos_base_volume_id
   pool               = var.libvirt_pool
 
@@ -44,7 +44,7 @@ module "worker" {
   name_prefix        = "worker"
   node_count         = var.worker
   network_name       = module.network.network_name
-  ip_prefix          = "192.168.100.20"
+  ip_prefix          = "192.168.100.2"
   talos_base_volume_id = module.talos_image.talos_base_volume_id
   pool               = var.libvirt_pool
 
@@ -72,4 +72,29 @@ module "talos_cluster" {
     module.controlplane,
     module.worker
   ]
+}
+
+# Stelle sicher, dass der Output-Ordner existiert
+resource "null_resource" "ensure_output_dir" {
+  provisioner "local-exec" {
+    command = "mkdir -p output"
+  }
+}
+
+# Speichere Kubeconfig in eine Datei
+resource "local_sensitive_file" "kubeconfig" {
+  content           = module.talos_cluster.kubeconfig
+  filename          = "output/kubeconfig"
+  file_permission   = "0600"
+
+  depends_on = [null_resource.ensure_output_dir]
+}
+
+# Speichere Talosconfig in eine Datei
+resource "local_sensitive_file" "talosconfig" {
+  content           = module.talos_cluster.talosconfig_raw
+  filename          = "output/talosconfig"
+  file_permission   = "0600"
+
+  depends_on = [null_resource.ensure_output_dir]
 }

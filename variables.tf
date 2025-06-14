@@ -31,7 +31,7 @@ variable "cluster_name" {
 variable "controlplane_endpoint" {
   description = "Der Endpunkt (VIP) für die Kontrollebene des Clusters"
   type        = string
-  default     = "192.168.100.100"
+  default     = "192.168.100.99"
 }
 
 variable "network_cidr" {

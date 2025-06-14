@@ -30,6 +30,16 @@ output "talosconfig" {
   sensitive   = true
 }
 
+output "kubeconfig_path" {
+  description = "Pfad zur gespeicherten Kubeconfig-Datei"
+  value       = local_sensitive_file.kubeconfig.filename
+}
+
+output "talosconfig_path" {
+  description = "Pfad zur gespeicherten Talosconfig-Datei"
+  value       = local_sensitive_file.talosconfig.filename
+}
+
 output "cluster_endpoint" {
   description = "Endpunkt des Kubernetes-Clusters"
   value       = "https://${var.controlplane_endpoint}:6443"
